@@ -435,6 +435,8 @@
     .result-copy { margin: 0 auto 24px; color: var(--muted); }
     .result-score { margin-bottom: 27px; font-size: 15px; }
     .result-score strong { color: var(--accent); font-size: 22px; }
+    .result-best { margin: -14px 0 27px; color: var(--muted); }
+    .result-best strong { color: var(--ink); font-variant-numeric: tabular-nums; }
     .result .primary { width: 100%; }
 
     .sr-only {
@@ -577,8 +579,32 @@
       }
     ];
 
+    const personalBestKey = "cosmic-quiz-personal-best";
+    let personalBestSaved = true;
+
+    function readPersonalBest() {
+      try {
+        const saved = window.localStorage.getItem(personalBestKey);
+        if (saved === null) return null;
+        const value = Number(saved);
+        return Number.isInteger(value) && value >= 0 && value <= questions.length ? value : null;
+      } catch {
+        personalBestSaved = false;
+        return null;
+      }
+    }
+
+    function savePersonalBest(value) {
+      try {
+        window.localStorage.setItem(personalBestKey, String(value));
+      } catch {
+        personalBestSaved = false;
+      }
+    }
+
     let current = 0;
     let score = 0;
+    let personalBest = readPersonalBest();
     let answered = false;
 
     let questionEl = document.querySelector("#question");
@@ -663,6 +689,10 @@
     function showResults() {
       const percent = score / questions.length;
       const highScore = score >= 8;
+      if (personalBest === null || score > personalBest) {
+        personalBest = score;
+        if (personalBestSaved) savePersonalBest(personalBest);
+      }
       const reaction = percent === 1 ? "🚀" : percent >= .7 ? "🌟" : percent >= .4 ? "🪐" : "🌱";
       const headline = percent === 1 ? "Out of this world!" : percent >= .7 ? "Stellar work!" : percent >= .4 ? "Nice exploring!" : "Keep reaching for the stars!";
       const copy = percent === 1
@@ -686,6 +716,7 @@
           <h1>${headline}</h1>
           <p class="result-copy">${copy}</p>
           <p class="result-score">You scored <strong>${score} / ${questions.length}</strong></p>
+          <p class="result-best">${personalBestSaved ? "Personal best" : "Personal best (this session only)"}: <strong>${personalBest} / ${questions.length}</strong></p>
           <button class="primary" id="restart-button" type="button">Explore again <span aria-hidden="true">↻</span></button>
         </div>`;
       document.querySelector("#restart-button").addEventListener("click", restart);
